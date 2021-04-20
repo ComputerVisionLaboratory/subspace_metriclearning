@@ -1,0 +1,31 @@
+strictness: medium
+# doc-warnings: true
+max-line-length: 80
+
+pep8:
+  full: true
+
+  disable:
+    - "E203"
+    - "W391"
+
+pylint:
+  disable:
+    - missing-module-docstring
+    - missing-class-docstring
+    - missing-function-docstring
+    - too-many-locals
+    - trailing-newlines
+
+# bandit:
+#   run: true
+
+# mypy:
+#  run: true
+
+pep257:
+  run: true
+
+# vulture:
+#  run: true
+
