@@ -33,7 +33,16 @@ RUN pip3 install pytorch-lightning hydra-core
 
 
 ##
-RUN pip3 install pymanopt==0.2.4
+# RUN pip3 install pymanopt==0.2.4
+RUN git clone https://github.com/pymanopt/pymanopt.git \
+    && cd pymanopt \
+    && python setup.py install \
+    && cd ..  \
+    && cp -r pymanopt/pymanopt.egg-info /usr/local/lib/python3.9/dist-packages/  \
+    && cp -r pymanopt /usr/local/lib/python3.9/dist-packages/  \
+    && rm -r pymanopt
+
+
 
 ENV GEOMSTATS_BACKEND=pytorch
 # commit id a5eee33

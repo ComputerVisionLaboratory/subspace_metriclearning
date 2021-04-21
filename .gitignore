@@ -3,3 +3,5 @@
 *.pth
 *.mat
 docker_run.sh
+
+**/__pycache__/**
