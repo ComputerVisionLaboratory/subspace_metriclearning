@@ -1,3 +1,5 @@
+import traceback
+
 import numpy as np
 import pymanopt
 import torch
@@ -291,6 +293,7 @@ class AbasedMetricLearningSubspace(MSMBase):
                 self.cost_trans[i] = np.Inf
                 if self.verbose > 0:
                     print(err)
+                    print(traceback.format_exc())
 
         # Set dictionary subspaces with respect to the learnd metric
         self.dic = ortha_subs(self.sub_basis, self.metric_mat)
