@@ -16,18 +16,22 @@ class LineSearchAdaptive:
 
     def __init__(
         self,
-        contraction_factor=0.7,
+        contraction_factor=0.5,
         suff_decr=0.5,
-        maxiter=3,
-        initial_stepsize=100,
+        maxiter=10,
+        initial_stepsize=1,
+        c1=1e-4,
+        c2=0.1,
     ):
         self._contraction_factor = contraction_factor
         self._suff_decr = suff_decr
         self._maxiter = maxiter
         self._initial_stepsize = initial_stepsize
         self._oldalpha = None
+        self.c1 = c1
+        self.c2 = c2
 
-    def search(self, objective, man, x, d, f0, df0):
+    def search(self, objective, man, x, d, f0, df0, gradient):
         """
         :param objective:
         :param man:
@@ -39,27 +43,18 @@ class LineSearchAdaptive:
         """
         norm_d = man.norm(x, d)
 
-        if self._oldalpha is None:
-            alpha = self._initial_stepsize / norm_d
-        else:
+        if self._oldalpha is not None:
             alpha = self._oldalpha
-
+        else:
+            alpha = self._initial_stepsize / norm_d
         alpha = np.min((float(alpha), 300))
 
         newx = man.retr(x, alpha * d)
-
-        for _ in range(200):
-            if torch.isnan(newx).any():
-                alpha *= 0.9
-                newx = man.retr(x, alpha * d)
-            else:
-                break
-
         newf = objective(newx)
         cost_evaluations = 1
 
         for _ in range(self._maxiter):
-            if newf <= f0 + self._suff_decr * alpha * df0:
+            if newf <= f0 + self.c1 * alpha * df0:
                 break
             alpha *= self._contraction_factor
             newx = man.retr(x, alpha * d)
@@ -73,9 +68,11 @@ class LineSearchAdaptive:
         else:
             self._oldalpha = 2 * alpha
 
-        if self._oldalpha < 1e-1 and newf < f0:
+        if newf > f0:
             self._oldalpha = None
             self._initial_stepsize /= 10
+
+        print(alpha, self._oldalpha)
 
         return newx, newf
 
@@ -143,7 +140,7 @@ class ConjugateGradient(Solver):
 
         # Execute line search
         newx, newcost = self.linesearch.search(
-            self.objective, self.man, x, desc_dir, cost, df0
+            self.objective, self.man, x, desc_dir, cost, df0, self.gradient
         )
         # Compute the new cost-related quantities for newx
         newgrad = self.gradient(newx)
