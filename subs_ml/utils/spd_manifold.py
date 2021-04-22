@@ -29,7 +29,11 @@ class SPDManopt(Manifold):
         self.exact_transport = exact_transport
 
     def norm(self, base_point, tangent_vector):
-        return self._manifold.metric.norm(tangent_vector, base_point=base_point)
+        squared_norm = self._manifold.metric.squared_norm(
+            tangent_vector, base_point
+        )
+        squared_norm = gs.abs(squared_norm)
+        return gs.sqrt(squared_norm)
 
     def inner(self, base_point, tangent_vector_a, tangent_vector_b):
         return self._manifold.metric.inner_product(
