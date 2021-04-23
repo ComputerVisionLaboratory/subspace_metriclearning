@@ -1,5 +1,6 @@
 import traceback
 
+import geomstats.backend as gs
 import numpy as np
 import pymanopt
 import torch
@@ -16,7 +17,7 @@ from subs_ml.utils import (
 from subs_ml.utils.spd_manifold import SPDManopt as SPD
 
 from .base_model import MSMBase
-from .riemannian_conjugate_gradient import ConjugateGradient, LineSearchAdaptive
+from .riemannian_conjugate_gradient import ConjugateGradient, LineSearch
 
 
 class AbasedMetricLearningSubspace(MSMBase):
@@ -35,6 +36,7 @@ class AbasedMetricLearningSubspace(MSMBase):
         weight_trnorm=0,
         verbose=0,
         seed=0,
+        _min_gradnorm=1e-4,
     ):
         """"""
         super(AbasedMetricLearningSubspace, self).__init__(
@@ -49,6 +51,7 @@ class AbasedMetricLearningSubspace(MSMBase):
         self.margin_trans = torch.zeros(max_iter + 1)
         self.tol = tol
         self.weight_trnorm = weight_trnorm
+        self._min_gradnorm = _min_gradnorm
 
         self.metric_mat = None
         self.k_mat = None
@@ -168,7 +171,7 @@ class AbasedMetricLearningSubspace(MSMBase):
             return self._egrad(_metric_mat, self.sw_idx, self.sb_idx)
 
         man = SPD(self.sub_basis.shape[0])
-        line_search = LineSearchAdaptive()
+        line_search = LineSearch()
         problem = Problem(
             manifold=man, cost=cost, egrad=egrad, verbosity=self.verbose
         )
@@ -210,29 +213,25 @@ class AbasedMetricLearningSubspace(MSMBase):
                         egrad=egrad,
                         verbosity=self.verbose,
                     )
-                    _oldalpha = solver.linesearch._oldalpha
-                    _initial_stepsize = solver.linesearch._initial_stepsize
                     solver = ConjugateGradient(
                         problem,
                         minstepsize=1e-1,
                         linesearch=line_search,
                     )
-                    solver.linesearch._oldalpha = _oldalpha
-                    solver.linesearch._initial_stepsize = _initial_stepsize
+
                 break
-            else:
-                eta *= 0.9
+            eta *= 0.9
 
         self.weight_trnorm = eta
 
-        return _dim_update
+        return _dim_update, solver
 
     def _fit(self, x_train, y_train):
         man, problem, solver, line_search = self._initialize(x_train)
 
         metric_mat = man.rand().to(x_train[0])
-        metric_mat += torch.eye(metric_mat.shape[0]).to(metric_mat)
         metric_mat /= metric_mat.norm()
+        metric_mat += 0.01 * torch.eye(metric_mat.shape[0]).to(metric_mat)
         min_cost = np.Inf
         self.cost_trans[0] = self._cost(metric_mat, self.sw_idx, self.sb_idx)
 
@@ -255,10 +254,15 @@ class AbasedMetricLearningSubspace(MSMBase):
         self.margin_trans[0] = calc_min_margin()
         _dim_update = 0
 
+        metric_norm = [metric_mat.norm()]
+
         for i in range(1, self.max_iter + 1):
             try:
                 # RCG Step
-                metric_mat, self.cost_trans[i] = solver.step(metric_mat)
+                metric_mat, self.cost_trans[i], grad_norm = solver.step(
+                    metric_mat
+                )
+                metric_norm.append(metric_mat.norm())
 
                 # Save the current minimum margin
                 self.margin_trans[i] = calc_min_margin()
@@ -269,7 +273,7 @@ class AbasedMetricLearningSubspace(MSMBase):
                     and i < self.max_iter - self.min_iter
                 ):
                     # Apply dimension reduction
-                    _dim_update = self._dimension_reduction(
+                    _dim_update, solver = self._dimension_reduction(
                         metric_mat, x_train, i, solver, line_search
                     )
 
@@ -284,12 +288,19 @@ class AbasedMetricLearningSubspace(MSMBase):
 
                 # Finish the loop if the cost cannot be decreased
                 diff_cost = (self.cost_trans[i] - self.cost_trans[i - 1]).abs()
-                if diff_cost < self.tol and i - _dim_update > self.min_iter:
+                if (
+                    diff_cost < self.tol or grad_norm < self._min_gradnorm
+                ) and i - _dim_update > self.min_iter:
                     break
 
             except RuntimeError as err:
                 # Restart due to numerical error
-                metric_mat += 1e-2 * man.rand().to(x_train[0].device)
+                val, vec = gs.linalg.eigh(metric_mat)
+
+                if val.min() < 0:
+                    metric_mat = vec @ val.abs().diag() @ vec.T
+                else:
+                    metric_mat += 1e-2 * man.rand().to(x_train[0].device)
                 self.cost_trans[i] = np.Inf
                 if self.verbose > 0:
                     print(err)

@@ -1,5 +1,3 @@
-import abc
-
 import geomstats.backend as gs
 from geomstats.geometry import spd_matrices as spd
 from geomstats.geometry.general_linear import GeneralLinear
@@ -65,7 +63,9 @@ class SPDManopt(Manifold):
 
     def transp(self, base_point, end_point, tangent):
         """
-        transports a tangent vector at a base_point to the tangent space at end_point
+
+        transports a tangent vector at a base_point
+        to the tangent space at end_point.
         """
 
         if self.exact_transport:
