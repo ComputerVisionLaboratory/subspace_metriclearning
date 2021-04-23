@@ -40,4 +40,3 @@ class GrassmannDiscriminantAnalysis(MSMBase):
             for i in range(self.n_classes)
         ]
         return np.asarray(pred)
-

@@ -217,4 +217,3 @@ def get_min_margin(_model, x):
         if margin > _m:
             margin = _m
     return margin
-

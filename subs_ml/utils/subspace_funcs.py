@@ -31,11 +31,14 @@ def ortha_subs(basis_set, metric):
         eig_val, eig_vec = torch.symeig(gram_mat, True)
 
     eig_val = eig_val.abs().pow(-0.5)
-    eig_val = torch.repeat_interleave(
-        torch.eye(eig_val.shape[1], device=eig_val.device).unsqueeze(0),
-        eig_val.shape[0],
-        0,
-    ) * torch.repeat_interleave(eig_val.unsqueeze(2), eig_val.shape[1], 2)
+    eig_val = (
+        torch.repeat_interleave(
+            torch.eye(eig_val.shape[1], device=eig_val.device).unsqueeze(0),
+            eig_val.shape[0],
+            0,
+        )
+        * torch.repeat_interleave(eig_val.unsqueeze(2), eig_val.shape[1], 2)
+    )
 
     orth_basis = basis_set.permute((2, 0, 1)).matmul(eig_vec).matmul(eig_val)
     orth_basis = orth_basis.permute((1, 2, 0)).contiguous()

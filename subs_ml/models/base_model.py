@@ -5,12 +5,7 @@ import scipy as sp
 import torch
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.preprocessing import LabelEncoder
-from subs_ml.utils import (
-    gpu_free,
-    ortha_subs,
-    pca_for_sets,
-    subspacea_subs,
-)
+from subs_ml.utils import gpu_free, ortha_subs, pca_for_sets, subspacea_subs
 
 
 class MSMBase(BaseEstimator, ClassifierMixin):
@@ -91,4 +86,3 @@ class MSMBase(BaseEstimator, ClassifierMixin):
             return np.asarray(pred), sim
 
         return np.asarray(pred)
-
