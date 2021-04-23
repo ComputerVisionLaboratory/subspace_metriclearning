@@ -264,6 +264,9 @@ class AbasedMetricLearningSubspace(MSMBase):
                 )
                 metric_norm.append(metric_mat.norm())
 
+                if self.verbose > 0:
+                    print("Current cost value {}".format(self.cost_trans[i]))
+
                 # Save the current minimum margin
                 self.margin_trans[i] = calc_min_margin()
 

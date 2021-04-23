@@ -36,7 +36,7 @@ RUN pip3 install pytorch-lightning hydra-core
 # RUN pip3 install pymanopt==0.2.4
 RUN git clone https://github.com/pymanopt/pymanopt.git \
     && cd pymanopt \
-    && python setup.py install \
+    && python3.9 setup.py install \
     && cd ..  \
     && cp -r pymanopt/pymanopt.egg-info /usr/local/lib/python3.9/dist-packages/  \
     && cp -r pymanopt /usr/local/lib/python3.9/dist-packages/  \
@@ -46,7 +46,7 @@ RUN git clone https://github.com/pymanopt/pymanopt.git \
 
 ENV GEOMSTATS_BACKEND=pytorch
 # commit id a5eee33
-RUN git clone https://github.com/geomstats/geomstats.git \
+RUN git clone https://github.com/geomstats/geomstats.git -b stable \
     && cd geomstats && pip3 install -r requirements.txt \
     && python3.9 setup.py install \
     && cd .. \

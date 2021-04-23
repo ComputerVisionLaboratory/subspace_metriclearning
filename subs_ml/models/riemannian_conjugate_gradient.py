@@ -160,7 +160,6 @@ class LineSearch:
         newf = objective(newx)
         self._old_alpha = alpha_star
 
-        print(alpha_star)
         return newx, newf
 
 
